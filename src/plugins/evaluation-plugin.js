@@ -10,7 +10,18 @@ import { Tab } from "../components/Tab";
 import { CoalitionPivotTable } from "../components/Charts/CoalitionPivotTable";
 import { spatial_abilities } from "../utils";
 
-export default function EvaluationPlugin(editor) {
+export default function EvaluationPlugin(editor)
+/* This asks 6 quesitons...
+
+    1. Is there more than one population subgroup?
+    2. If the state is eligible for VAP
+    3. If the state has more than one election 
+    4. If the state has ages
+    5. If the plan is not a community and contiguity matters
+        and if it's not a Mass. town. 
+    6. If VRA is to be shown and it's not a Mass. town
+*/
+{
     const { state, toolbar } = editor;
 
     const showVRA = (state.plan.problem.type !== "community") && (spatial_abilities(state.place.id).vra_effectiveness);
