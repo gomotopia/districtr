@@ -96,7 +96,27 @@ export function savePlanToStorage({
     localStorage.setItem("savedState", JSON.stringify(state));
 }
 
-export function savePlanToDB(state, eventCode, planName, callback) {
+export function savePlanToDB(state, eventCode, planName, callback)
+/****
+ *  Saves plan to database. Occurs after plan is saved.
+ *  Used in Toolbar, Modal, tools-plugin
+ *  @param {type} state int of Fips code?
+ *  @param {type} eventCode optional string event code?
+ *  @param {type} planName optional? String? Unique plan name
+ *  @param {function} callback Next function in chain.
+ */
+{
+    // Defines variables.
+    // State is serialized into a URL read string. Just fips or whole JSON plan?
+    // Map ID is taken from the last part of the current URL (districtr.org/plan/XXXXX)
+    // token from session of plan 
+    // createAfter, a Date of the day before now
+    // tokenValid: checks if token exists and was created in the last day
+    // saveURL: if tokenValid, uses netlify to update plan of mapID, or creates.
+    //          Where are these netlify functions??
+    // requestBody: combines plan (serialized state), token, eventCode, planName
+    //                isScratch (a new draft option) and hostname.
+
     const serialized = state.serialize(),
         mapID = window.location.pathname.split("/").slice(-1)[0],
         token = localStorage.getItem("districtr_token_" + mapID) || "",
@@ -115,6 +135,7 @@ export function savePlanToDB(state, eventCode, planName, callback) {
             hostname: window.location.hostname
         };
     // VA fix - if precinct IDs are strings, escape any "."
+    // [Separate this function out?]
     Object.keys(requestBody.plan.assignment || {}).forEach(key => {
         if (typeof key === "string" && key.indexOf(".") > -1) {
             requestBody.plan.assignment[key.replace(/\./g, "÷")] =
@@ -122,6 +143,19 @@ export function savePlanToDB(state, eventCode, planName, callback) {
             delete requestBody.plan.assignment[key];
         }
     });
+
+    // From either planUpdate or planCreate, send information. 
+    // Then take the response as a JSON
+    // Then decide if this is a localhost or regular deployment, 
+    //      and if regular deployment, if it's a COI or Plan...
+    //          A state is pushed to window of new URL containing the decision 
+    //              (if edit or COI or plan)
+    //          Sets a token [separate function?]
+    //          Saves a picture. [separate function?]
+    // Callback if info has a simple iD with action or cause error
+    //
+    // Uses picture2 in districtr/districtr-eda/server.py! 
+    //
     fetch(saveURL, {
         method: "POST",
         body: JSON.stringify(requestBody)
