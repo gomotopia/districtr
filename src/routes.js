@@ -1,6 +1,47 @@
+/**
+ Defines Routes, and provides functions...
+
+* export function navigateTo(route)
+    signout.js, register, signin, index.js, rquest toolsplugin editjs
+
+
+
+* export function startNewPlan(place, problem, units, id, setParts, eventCode) 
+* startNewPlan(place, problem, units, id, setParts, eventCode)
+yakima, lowell, napa, placelists.js, Chicago, statelandingpage, event
+
+
+* export function savePlanToStorage({
+    place,
+    problem,
+    units,
+    id,
+    assignment,
+    name,
+    description,
+    parts
+}) 
+AboutSection.js, LandmarkTool, edit, community plugin
+
+* export function getContextFromStorage()
+    edit.js
+* export function loadPlanFromJSON(planRecord)
+* export function getContextFromStorage()
+
+used in import, community, new
+* export function savePlanToDB(state, eventCode, planName, callback)
+    Toolbar 
+
+index.js toolsplugin
+* export function loadPlanFromURL(url) 
+* export function loadPlanFromCSV(assignmentList, state)
+
+*/
+
 import { listPlaces } from "./api/mockApi";
 import { spatial_abilities } from "./utils";
 
+// URL routes. Redundant? 
 const routes = {
     "/": "/",
     "/new": "/new",
