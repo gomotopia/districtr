@@ -1,7 +1,11 @@
 # Contiguity
 
+Contiguity drop-down maybe sticky. Reverts to 'Districts may have discontinuity' rather than displaying rows of checkboxes.
+
 ### **src/utils.js** 
 Function `spatial_abilities` has `const status` which contains State info. One options is `contiguity` which is marked with a 2 (?) 
+
+Even states not listed with the `contiguity` option has a highlight islands feature.
 
 ### **src/plugins/evaluation-plugin.js**
 
@@ -30,7 +34,29 @@ If `contigVersion` is 2 (from spatial_abilities), then the next display will be 
 
  Where/how is this checkbox read?
 
+
 ### **src/map/contiguity.js**
+
+```
+  ~~ Contiguity.js ~~
+  Written by @mapmeld between March and December 2020 with contributions from Zhenghong Lieu.
+  Commentary by @gomotopia, April 2021. Patterend off of NumberMarkers?
+
+  In edit.js, a context is loaded, which requires a set of tool plugins, defined in tools-plugin.js.
+  Within this function, a ContiguityChecker is called, described below.
+
+  This function returns a CallContiguityChecker which sets in motion the querying and display
+  of noncontiguous islands. 
+
+  Level 0: returns CallContiguityChecker
+  Level 1: CallContiguityChecker submits the state plan to the external Contiguity server
+  Level 2: This response, once error checked, is parsed by ParseContigResponse which
+           updates state.contiguity and an array that keeps track of non contiguous islands. 
+  Level 3: SetContiguityStatus uses these tables to display options for the user to explore
+           discontinuities. The user response listeners are initialized here.
+  Level 4: Finally, UpdateIslandBorders is used to paint or unpaint highlighted borders around
+           precincts.
+```
 
 This provides `function ContiguityChecker` which takes state and brush as parameters.
 
@@ -56,7 +82,7 @@ Checks if a contiguity-label checkbox is selected.
 ## Description
 assets/about/landing/rules.html
 html/updates.html
-
+assets/about/alaska/research.html
 
 ## SASS
 

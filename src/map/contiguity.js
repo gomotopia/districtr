@@ -1,15 +1,16 @@
 /* eslint-disable linebreak-style */
 
 /*
-  ~~ Contiguity.js ~~
+  ~~ src/map/Contiguity.js ~~
   Written by @mapmeld between March and December 2020 with contributions from Zhenghong Lieu.
-  Commentary by Ryan Gomez, April 2021. Patterend off of NumberMarkers?
+  Commentary by @gomotopia, April 2021. Patterend off of NumberMarkers?
 
   In edit.js, a context is loaded, which requires a set of tool plugins, defined in tools-plugin.js.
   Within this function, a ContiguityChecker is called, described below.
 
   This function returns a CallContiguityChecker which sets in motion the querying and display
-  of noncontiguous islands. 
+  of noncontiguous islands. The function relies on user input provided by
+  src/components/Charts/ContiguitySection.js.
 
   Level 0: returns CallContiguityChecker
   Level 1: CallContiguityChecker submits the state plan to the external Contiguity server
@@ -211,6 +212,3 @@ export default function ContiguityChecker(state, brush) // brush not needed
   CallContiguityServer(state);
   return CallContiguityServer;
 }
-
-
-
