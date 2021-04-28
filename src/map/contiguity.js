@@ -1,43 +1,40 @@
 /* eslint-disable linebreak-style */
 
-// This makes a POST request to a PythonAnywhere server
-// with the assignment in the request body.
-// The server will return a response with the
-// 1. contiguity status and
-// 2. number of cut edges
-// and this function then calls two other functions (defined above)
-// that modify the innerHTML of the file
-
 /*
+  ~~ Contiguity.js ~~
+  Written by @mapmeld between March and December 2020 with contributions from Zhenghong Lieu.
+  Commentary by Ryan Gomez, April 2021. Patterend off of NumberMarkers?
 
-  state.place.id
-  state.units.sourceId
-  state.contiguity
-  state.idColumn.key
+  In edit.js, a context is loaded, which requires a set of tool plugins, defined in tools-plugin.js.
+  Within this function, a ContiguityChecker is called, described below.
 
-*/ 
+  This function returns a CallContiguityChecker which sets in motion the querying and display
+  of noncontiguous islands. 
+
+  Level 0: returns CallContiguityChecker
+  Level 1: CallContiguityChecker submits the state plan to the external Contiguity server
+  Level 2: This response, once error checked, is parsed by ParseContigResponse which
+           updates state.contiguity and an array that keeps track of non contiguous islands. 
+  Level 3: SetContiguityStatus uses these tables to display options for the user to explore
+           discontinuities. The user response listeners are initialized here.
+  Level 4: Finally, UpdateIslandBorders is used to paint or unpaint highlighted borders around
+           precincts.
+*/
 
 
 import { unitBordersPaintProperty } from "../colors";
 
-export default function ContiguityChecker(state, brush)
+
+export default function ContiguityChecker(state, brush) // brush not needed 
 {
-  let placeID = state.place.id,
-  
-  // Checks if Mass data is used. 
+  // ### Initialize ###########################
 
-  if (state.units.sourceId === "ma_precincts_02_10")
-    place = "ma_02";
-  else if (state.units.sourceId === "ma_towns")
-    place = "ma_towns";
-
-  // Checks if Louisiana separator needed. 
-  const sep = (state.place.id === "louisiana") ? ";" : ",";
-
-  // Ensures that state.contiguity is not null
+  // Initializes state.contiguity as object if Null. 
   state.contiguity = state.contiguity ? state.contiguity : {};
 
-  function updateIslandBorders(checkboxFlipped)
+  // ### Level 4 ##############################
+
+  function UpdateIslandBorders()
   /*
     Colors in borders of islands based on checkboxes.
 
@@ -50,193 +47,170 @@ export default function ContiguityChecker(state, brush)
     // Selects all inputs within a contiguity-label (districts) listed in district-row section 
     const boxes = document.querySelectorAll('.district-row .contiguity-label input');
 
-    // if discontinuities are found (if there are any boxes)...
-    if (boxes.length)
-    {
-      let noneChecked = !checkboxFlipped; 
+    // If boxes are rendered for discontiguous units...
+    if (boxes.length) {
+      let noneChecked = false; 
 
-      /***
-        If noneChecked is False, each box is checked and if there
-        are boxes that are checked, then noneChecked remains false.
-        
-        If noneChecked is True, each box is still checked and if
-        there are boxes that are checked, noneChecked is corrected.
-      ***/
-    
-      boxes.forEach((box, d) => 
-      {
+      // iterates through boxes and checks if they're marked. 
+      boxes.forEach((box, d) => {
         if (box.checked)
         // Adds each island area from selected area, or empty array. 
         // Ensures that noneChecked is false.  
         {
           islandAreas = islandAreas.concat(state.contiguity[d] || []);
           noneChecked = false;
-        }
-      });
+        }})
 
-      // if there are any boxes checked... 
-      if (!noneChecked)
-      {
-        // References unitBordersPaintProperty in colors.js
+      // If there are any boxes checked, set the right colors.  
+      if (!noneChecked) {
+        // References unitBordersPaintProperty in colors.js for use
+        // with mapbox-gl
         let islandBorderProperties = 
-        {
-            "line-color": [
-                "case",
-                ["in", ["get", state.idColumn.key], ["literal", islandAreas]],
-                "#f00000",
-                unitBordersPaintProperty["line-color"]
-            ],
-            "line-opacity": 0.4,
-            "line-width": ["case", ["in", ["get", state.idColumn.key], ["literal", islandAreas]], 4, 1],
-        };
-
+        { "line-color": [
+            "case",
+            ["in", ["get", state.idColumn.key], ["literal", islandAreas]],
+            "#f00000",
+              unitBordersPaintProperty["line-color"]],
+          "line-opacity": 0.4,
+          "line-width": [
+            "case",
+            ["in", ["get", state.idColumn.key], ["literal", islandAreas]], 4, 1]};
         // See /src/map/Layer.js
-        state.unitsBorders.setPaintProperties(islandBorderProperties);
-      }
+        state.unitsBorders.setPaintProperties(islandBorderProperties);}
+      else { 
+        // No boxes checked, default borders restored. 
+        state.unitsBorders.setPaintProperties(unitBordersPaintProperty);}
     }
     return;
   }
 
-////////////////////////////////////////////
-  /*
-    ...
+  // ### Level 3 ##############################
 
-    @param {Object} contiguity_breaks, issues from udpater. 
+  /*
+    Begins to display options for user to highlight discontinuities. 
+
+    @param {Object} discontigDistricts, issues from ParseContigResponse. 
     @return {null} 
   */
-  function setContiguityStatus(contiguity_breaks)
+  function SetContiguityStatus(discontigDistricts)
   {
-    // Is there breaks? Update the website. 
+    // Is there breaks? Website reports on number of discontig districts. 
     document.querySelector("#contiguity-status").innerText =
-        contiguity_breaks.length
-            ? "Districts may have contiguity gaps"
-            : "No contiguity gaps detected";
+      discontigDistricts.length ? "Districts may have contiguity gaps"
+                                : "No contiguity gaps detected";
 
-      // myDistricts are spans that represent each district, with a checkbox 
-      // toggling the highlighting of islands, and displayed only if there are
-      // discontinuities. 
-    let myDistricts = document.querySelectorAll('.district-row .contiguity-label');
+    // districtContigSpans are spans that represent each district, with a checkbox 
+    // toggling the highlighting of islands, and displayed only if there are
+    // discontinuities. 
+    let districtContigSpans = document.querySelectorAll('.district-row .contiguity-label');
 
-    for (let d = 0; d < myDistricts.length; d++)
-    {
-      // show-hide label altogether
-      // If the district is listed in issues, include it, or don't display it. 
-      myDistricts[d].style.display = contiguity_breaks.includes(d) ? "flex" : "none";
+    // Loop through all districts. Show if it it's in discontigDistricts
+    // If the district is listed in discontiguousDistricts, include it, or don't display it. 
+    for (let d = 0; d < districtContigSpans.length; d++) {
+      districtContigSpans[d].style.display = discontigDistricts.includes(d) ? "flex" : "none";
 
-      // If this district is indeed displayed, toggle off unassigned setting!
-      let box = myDistricts[d].querySelector('input');
-      if (box) {
-        myDistricts[d].querySelector('input').onchange = () => {
+      // If this district is indeed displayed, toggle off unassigned setting on any change!
+      let box = districtContigSpans[d].querySelector('input');
+      if (box ){
+        districtContigSpans[d].querySelector('input').onchange = () =>
+        {
           document.querySelector('#unassigned-checker input').checked = false;
-          updateIslandBorders(true);
-        };
-      }
-    }
+          UpdateIslandBorders();
+        };}}
 
-    updateIslandBorders();
+    UpdateIslandBorders();
+    return;
   }
 
-//////////////////////////
+   // ### Level 2 ##############################
 
+  function ParseContigResponse(contig_data)
+  /*
+    Parses error-checked information from server. Contiguity data is nested
+    arrays of 
 
-  const updater = (state, colorsAffected) => {
+    District: [
+      Island:[Precinct, Precicnt...]
+      Island:[Precinct, Precicnt...]
+      Island:... 
+    ]
+    District... 
+
+    Two datastructures are updated, state.contiguity, an object that pairs
+    district number and island districts and discontigDistricts, a list of districts
+    where contiguities were found. 
+
+    @param {Object} contig_data Error-checked island data for each district.
+    @return {null} 
+  */
+  {
+    state.contiguity = {};
+    let discontigDistricts = [];
+    /* 
+      For each District's list of islands, if there are 2 or more islands, then 
+      the District's number is recorded in discontigDistricts.  
+    */
+
+    let reportedDistricts = Object.keys(contig_data);
+
+    reportedDistricts.forEach(
+      (reportedDistrict) => {
+
+        let reportedDistrictIndex = Number(reportedDistrict);
+        let reportedDistrictIslands = contig_data[reportedDistrict]; 
+
+        if (reportedDistrictIslands.length > 1) {
+          // Add to list of discontiguousDistricts. 
+          discontigDistricts.push(reportedDistrictIndex);
+
+          // Fill island areas by ranking the length of each island
+          // removing the largest one and combine the rest of the precincts
+          // into one array. 
+
+          let islandareas = [];
+          reportedDistrictIslands.sort((a, b) => { return b.length - a.length })
+            .slice(1)
+            .forEach(island => { islandareas = islandareas.concat(island);})
+
+          // The IslandAreas are registered in state.contiguity.
+          state.contiguity[reportedDistrictIndex] = islandareas;}       
+        else {
+         state.contiguity[reportedDistrictIndex] = null; }
+    }) //;
+    SetContiguityStatus(discontigDistricts);
+    return;
+  }
+
+  // ### Level 1 ##############################
+
+  const CallContiguityServer = (state_plan) => {
   /*
     Sends, recieves and processes information to and from the server. 
 
-    @param {State} Current State plan.
-    @param {Array} Array of numbers of size numberOfParts, "allDistricts?". Not used!
+    @param {State} state_plan Current State plan.
     @return {null} 
   */
 
     // Prepare plan for sending. npm function. 
-    let saveplan = state.serialize();
+    let saveplan = state_plan.serialize();
 
     // URL for outside server
-    const GERRYCHAIN_URL = "//mggg.pythonanywhere.com";
+    const CONTIG_SERVER = "//mggg.pythonanywhere.com/contigv2";
 
-    /**
-     We're fetching from the PythonAnywhere server. 
-     We send to fetch the URL and options, "headers," "body"
-     of POST request. 
-     
-     The server's Contiguity app returns an object of arrays
-     that enumerate each district, with nested arrays that outline
-     each districts's islands as an array of
-     Precinct ID strings. 
-
-     The response res is then converted into a JSON,
-     any errors are caught, then...
-     */
-    fetch(GERRYCHAIN_URL + "/contigv2", {
+    fetch(CONTIG_SERVER + "", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify(saveplan),
     })
       .then((res) => res.json())
       .catch((e) => console.error(e))
-      /*
-      A function here is called to parse out the data. 
+      .then(ParseContigResponse);
+    return; } 
 
-      A blank state.contiguity Object and a blank issues Array
-      are created. 
-      */
-      .then((data) => {
-        state.contiguity = {};
-        let issues = [];
-        /* 
-          For each District's list of islands, 
-          if there are 2 or more islands, then 
-          the District's number is recorded in 
-          issues.  
-        */
-
-
-        Object.keys(data).forEach(
-          
-          (district) => {
-          if (data[district].length > 1) {
-            // basic contiguity
-            issues.push(Number(district));
-
-            // Fill island areas by ranking the length of each island
-            // removing the largest one and combine the rest of the precincts
-            // into one array. 
-
-            let islandareas = [];
-            data[district].sort((a, b) => { return b.length - a.length })
-              .slice(1)
-              .forEach(island => { islandareas = islandareas.concat(island);})
-
-            // The IslandAreas are registered in state.contiguity.
-            state.contiguity[Number(district)] = islandareas;
-          } 
-          
-          // If there are 1 or 0 islands, then the district is registered
-          // in state.contiguity as null. 
-          
-          else {
-            state.contiguity[Number(district)] = null;
-          }
-        });
-        setContiguityStatus(issues);
-      });
-  };
-
-  // Generate array with number of each part. 
-  /*
-  let allDistricts = [],
-    i = 0;
-  while (i < state.problem.numberOfParts) {
-    allDistricts.push(i);
-    i++;
-  }
-  */ 
-
-  let allDistricts = [...Array(state.problem.numberOfParts).keys()]
-
-
-  updater(state, allDistricts);
-  return updater;
+  // ### Level 0 ##############################
+  CallContiguityServer(state);
+  return CallContiguityServer;
 }
+
+
+
