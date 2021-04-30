@@ -80,9 +80,10 @@ export default function PopulationBalancePlugin(editor) {
     */
     const setBBoxForMap = (bboxData) => 
     {
+        // Checks for empty box data or other server errors.
         if (bboxData.length)
         {
-          referenceBbox = typeof bboxData[0] !== 'number' ? bboxData : bboxData[0]; 
+          let referenceBbox = typeof bboxData[0] === 'number' ? bboxData : bboxData[0]; 
           if (referenceBbox.length)
           {
               state.map.fitBounds([
@@ -160,27 +161,26 @@ export default function PopulationBalancePlugin(editor) {
   // Creates PopBalance Section based whether problem type is
   // multimember or not.
   let barChart = "";
-  let popDeviation = ""; 
-  
-  if (problem.type === "multimember")
-  {
-    barChart = MultiMemberPopBalanceChart(state.population, state.parts);
-  }
-  else {
-    barChart = populationBarChart(state.population, state.activeParts);
-    popDeviation = populationDeviation(state.population);}
-  
-  let popBalanceSectionHTML =  () => html`
+  let popDeviation = "";
+  let debugaaa = "";
+ 
+  // Must be a function, as it is a certain element used in 
+  // addRevealSection. 
+  let popBalanceSectionHTML =  () => {return html`
     <section class="toolbar-inner dataset-info">
         ${populateDatasetInfo(state)};
     </section>
-      ${barChart}
+    ${problem.type === "multimember"?
+      MultiMemberPopBalanceChart(state.population, state.parts)
+      :populationBarChart(state.population, state.activeParts)}
     <dl class="report-data-list">
         ${unassignedPopulation(state.population)}
-        ${popDeviation}
+        ${problem.type === "multimember"?
+          "" : popDeviation = populationDeviation(state.population)}
         ${HighlightUnassigned(state.unitsBorders, zoomToUnassigned)}
     </dl>
-    `
+    `}
+    
   // Adds reveal section to new Pop Balance Tab
   newPopBalanceTab.addRevealSection("Population Balance",popBalanceSectionHTML)
   // Adds new Pop Balance Tab to Editor Toolbar
