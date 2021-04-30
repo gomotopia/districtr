@@ -24,6 +24,18 @@ src/lambda/planContiguity.js
 
 ### **src/components/Charts/ContiguitySection.js**
 
+```
+When the edit interface is rendered, it calls edit.js which calls, as a
+default plugin, src/plugins/evaluation-plugin.js to render its Evaluation tab. 
+ContiguitySection.js then returns a function that returns the relevant HTML.
+This relies on state.contiguity whose data is collected in src/map/Contiguity.js...
+
+ContiguitySection function creates a contiguity bar for each district, reads
+which districts have discontiguities and chooses to display those in the following
+manner.
+```
+~~ src/components/Charts/ContiguitySection.js ~~
+
 `ContiguitySection` takes the following parameters and returns html: `allParts, contiguityProblems, contigVersion, uiState,` and `dispatch`
 
 First, it lists in `<h4>` what districts have contiguity gaps by filtering `contiguityProblems`. 
